@@ -65,7 +65,22 @@
 #define NLMS_DESPIKE_ON 1           // 1: 启用插值前单点尖峰修复
 #define NLMS_DESPIKE_TH 80.0f       // 尖峰阈值，单位为中心化 ADC 码值
 
-#define NLMS_FREQ_SAMPLE_RATE 50000.0f // NLMS e 的采样率，单位 Hz
+#define ADC_SAMPLE_RATE_HIGH_HZ 50000.0f
+#define DAC_SAMPLE_RATE_HIGH_HZ 200000.0f
+#define ADC_SAMPLE_RATE_LOW_HZ 10000.0f
+#define DAC_SAMPLE_RATE_LOW_HZ 40000.0f
+#define TIM_SAMPLE_RATE_PSC (20U - 1U)
+#define TIM2_DAC_HIGH_ARR (21U - 1U)
+#define TIM3_ADC_HIGH_ARR (84U - 1U)
+#define TIM2_DAC_LOW_ARR (105U - 1U)
+#define TIM3_ADC_LOW_ARR (420U - 1U)
+
+#define ADC_DAC_DYNAMIC_FREQ_ON 1
+#define ADC_DAC_FREQ_SWITCH_ENTER_HZ 500.0f
+#define ADC_DAC_FREQ_SWITCH_EXIT_HZ 650.0f
+#define ADC_DAC_FREQ_SWITCH_MIN_CONFIDENCE 0.50f
+#define ADC_DAC_FREQ_SWITCH_STABLE_COUNT 3U
+
 #define NLMS_FREQ_WINDOW_SIZE 4096     // 频率计统计窗口长度
 #define NLMS_FREQ_HYST_TH 50.0f        // 上升沿零交叉迟滞阈值
 #define NLMS_FREQ_MIN_RMS 80.0f        // RMS 低于该值时不更新频率
@@ -73,7 +88,6 @@
 #define NLMS_FREQ_MAX_HZ 5000.0f       // 有效频率上限
 
 #define NLMS_REF_NOTCH_ON 1                 // 1: 对 NLMS 参考输入启用动态陷波
-#define NLMS_REF_NOTCH_SAMPLE_RATE 50000.0f // 参考输入陷波器采样率，单位 Hz
 #define NLMS_REF_NOTCH_MIN_FREQ 100.0f      // notch 有效频率下限
 #define NLMS_REF_NOTCH_MAX_FREQ 5000.0f     // notch 有效频率上限
 #define NLMS_REF_NOTCH_R 0.990f             // notch 极点半径，越接近 1 越窄
@@ -132,6 +146,11 @@ typedef struct {
   float locked_freq_hz;
   uint8_t freq_valid;
 } dynamic_notch_t;
+
+typedef enum {
+  SAMPLE_RATE_MODE_HIGH = 0,
+  SAMPLE_RATE_MODE_LOW = 1,
+} sample_rate_mode_t;
 
 typedef struct {
   float prev_x;
@@ -201,6 +220,10 @@ volatile uint32_t tim5_delta_full = 0;
 
 volatile float adc_fs_half = 0.0f;
 volatile float adc_fs_full = 0.0f;
+volatile float current_adc_sample_rate_hz = ADC_SAMPLE_RATE_HIGH_HZ;
+volatile float current_dac_sample_rate_hz = DAC_SAMPLE_RATE_HIGH_HZ;
+volatile uint8_t debug_sample_rate_mode = SAMPLE_RATE_MODE_HIGH;
+volatile uint32_t debug_sample_rate_switch_count = 0;
 
 volatile uint32_t nlms_time_us_half = 0;
 volatile uint32_t nlms_time_us_full = 0;
@@ -210,6 +233,7 @@ volatile float debug_nlms_freq_confidence = 0.0f;
 volatile uint32_t debug_nlms_zero_cross_count = 0;
 volatile float debug_nlms_e_rms = 0.0f;
 volatile float debug_nlms_e_pp = 0.0f;
+volatile uint8_t debug_nlms_freq_updated = 0;
 
 volatile float debug_ref_notch_locked_freq_hz = 0.0f;
 volatile uint8_t debug_ref_notch_valid = 0;
@@ -229,6 +253,9 @@ volatile float debug_ref_square_rms = 0.0f;
 volatile uint32_t nlms_reset_led_until_tick = 0;
 
 biquad_hp_t hp_filter;
+
+static uint32_t sample_rate_low_detect_count = 0;
+static uint32_t sample_rate_high_detect_count = 0;
 
 static const float nlms_initial_w[NLMS_TAPS] = {
     0.55393779f,  0.05828273f,  0.00947517f,  0.02123324f,  0.02595950f,
@@ -301,6 +328,8 @@ void dynamic_notch_update_freq(dynamic_notch_t *f, float measured_freq_hz,
 float dynamic_notch_process(dynamic_notch_t *f, float x);
 void ref_square_detector_init(ref_square_detector_t *d);
 void ref_square_detector_process(ref_square_detector_t *d, float x_raw);
+void sample_rate_manager_update(nlms32_t *s);
+void sample_rate_apply_mode(sample_rate_mode_t mode, nlms32_t *s);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -413,6 +442,8 @@ int main(void) {
                                ADC_PAIR_COUNT);
       nlms_time_us_full = TIM5->CNT - t_start;
     }
+
+    sample_rate_manager_update(&nlms);
 
     /* USER CODE END WHILE */
 
@@ -611,13 +642,130 @@ void dynamic_notch_init(dynamic_notch_t *f) {
   debug_ref_notch_last_out = 0.0f;
 }
 
+static float sample_rate_get_adc_hz(void) {
+  return current_adc_sample_rate_hz;
+}
+
+static uint32_t sample_rate_mode_tim2_arr(sample_rate_mode_t mode) {
+  return (mode == SAMPLE_RATE_MODE_LOW) ? TIM2_DAC_LOW_ARR : TIM2_DAC_HIGH_ARR;
+}
+
+static uint32_t sample_rate_mode_tim3_arr(sample_rate_mode_t mode) {
+  return (mode == SAMPLE_RATE_MODE_LOW) ? TIM3_ADC_LOW_ARR : TIM3_ADC_HIGH_ARR;
+}
+
+static float sample_rate_mode_adc_hz(sample_rate_mode_t mode) {
+  return (mode == SAMPLE_RATE_MODE_LOW) ? ADC_SAMPLE_RATE_LOW_HZ
+                                        : ADC_SAMPLE_RATE_HIGH_HZ;
+}
+
+static float sample_rate_mode_dac_hz(sample_rate_mode_t mode) {
+  return (mode == SAMPLE_RATE_MODE_LOW) ? DAC_SAMPLE_RATE_LOW_HZ
+                                        : DAC_SAMPLE_RATE_HIGH_HZ;
+}
+
+void sample_rate_apply_mode(sample_rate_mode_t mode, nlms32_t *s) {
+  if ((uint8_t)mode == debug_sample_rate_mode) {
+    return;
+  }
+
+  HAL_TIM_Base_Stop(&htim2);
+  HAL_TIM_Base_Stop(&htim3);
+  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+  HAL_ADCEx_MultiModeStop_DMA(&hadc1);
+  HAL_ADC_Stop(&hadc2);
+
+  __HAL_TIM_SET_PRESCALER(&htim2, TIM_SAMPLE_RATE_PSC);
+  __HAL_TIM_SET_AUTORELOAD(&htim2, sample_rate_mode_tim2_arr(mode));
+  __HAL_TIM_SET_COUNTER(&htim2, 0);
+  htim2.Init.Prescaler = TIM_SAMPLE_RATE_PSC;
+  htim2.Init.Period = sample_rate_mode_tim2_arr(mode);
+  HAL_TIM_GenerateEvent(&htim2, TIM_EVENTSOURCE_UPDATE);
+
+  __HAL_TIM_SET_PRESCALER(&htim3, TIM_SAMPLE_RATE_PSC);
+  __HAL_TIM_SET_AUTORELOAD(&htim3, sample_rate_mode_tim3_arr(mode));
+  __HAL_TIM_SET_COUNTER(&htim3, 0);
+  htim3.Init.Prescaler = TIM_SAMPLE_RATE_PSC;
+  htim3.Init.Period = sample_rate_mode_tim3_arr(mode);
+  HAL_TIM_GenerateEvent(&htim3, TIM_EVENTSOURCE_UPDATE);
+
+  current_adc_sample_rate_hz = sample_rate_mode_adc_hz(mode);
+  current_dac_sample_rate_hz = sample_rate_mode_dac_hz(mode);
+  debug_sample_rate_mode = (uint8_t)mode;
+  debug_sample_rate_switch_count++;
+
+  DMA_HALF_SIGN = 0;
+  DMA_FULL_SIGN = 0;
+  tim5_last_half = TIM5->CNT;
+  tim5_last_full = tim5_last_half;
+  tim5_delta_half = 0;
+  tim5_delta_full = 0;
+  adc_fs_half = 0.0f;
+  adc_fs_full = 0.0f;
+  nlms_time_us_half = 0;
+  nlms_time_us_full = 0;
+  sample_rate_low_detect_count = 0;
+  sample_rate_high_detect_count = 0;
+
+  ClearDACOutputValues();
+  nlms32_reset(s);
+  biquad_hp_init(&hp_filter);
+
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dacOutputValues,
+                    DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
+  HAL_ADC_Start(&hadc2);
+  HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adcRAwValues,
+                               ADC_BUFFER_SIZE);
+  HAL_TIM_Base_Start(&htim3);
+  HAL_TIM_Base_Start(&htim2);
+}
+
+void sample_rate_manager_update(nlms32_t *s) {
+#if ADC_DAC_DYNAMIC_FREQ_ON == 1
+  if (debug_nlms_freq_updated == 0U) {
+    return;
+  }
+  debug_nlms_freq_updated = 0;
+
+  if (debug_nlms_freq_confidence < ADC_DAC_FREQ_SWITCH_MIN_CONFIDENCE) {
+    sample_rate_low_detect_count = 0;
+    sample_rate_high_detect_count = 0;
+    return;
+  }
+
+  const float freq_hz = debug_nlms_freq_hz;
+  if (debug_sample_rate_mode == SAMPLE_RATE_MODE_HIGH) {
+    if ((freq_hz >= NLMS_FREQ_MIN_HZ) &&
+        (freq_hz < ADC_DAC_FREQ_SWITCH_ENTER_HZ)) {
+      sample_rate_low_detect_count++;
+      if (sample_rate_low_detect_count >= ADC_DAC_FREQ_SWITCH_STABLE_COUNT) {
+        sample_rate_apply_mode(SAMPLE_RATE_MODE_LOW, s);
+      }
+    } else {
+      sample_rate_low_detect_count = 0;
+    }
+  } else {
+    if (freq_hz > ADC_DAC_FREQ_SWITCH_EXIT_HZ) {
+      sample_rate_high_detect_count++;
+      if (sample_rate_high_detect_count >= ADC_DAC_FREQ_SWITCH_STABLE_COUNT) {
+        sample_rate_apply_mode(SAMPLE_RATE_MODE_HIGH, s);
+      }
+    } else {
+      sample_rate_high_detect_count = 0;
+    }
+  }
+#else
+  (void)s;
+#endif
+}
+
 void dynamic_notch_set_freq(dynamic_notch_t *f, float freq_hz) {
   if ((freq_hz < NLMS_REF_NOTCH_MIN_FREQ) ||
       (freq_hz > NLMS_REF_NOTCH_MAX_FREQ)) {
     return;
   }
 
-  const float w0 = 2.0f * (float)M_PI * freq_hz / NLMS_REF_NOTCH_SAMPLE_RATE;
+  const float w0 = 2.0f * (float)M_PI * freq_hz / sample_rate_get_adc_hz();
   const float c = cosf(w0);
   const float r = NLMS_REF_NOTCH_R;
 
@@ -680,6 +828,7 @@ void nlms_freq_meter_init(nlms_freq_meter_t *m) {
   debug_nlms_zero_cross_count = 0;
   debug_nlms_e_rms = 0.0f;
   debug_nlms_e_pp = 0.0f;
+  debug_nlms_freq_updated = 0;
 }
 
 void nlms_freq_meter_process(nlms_freq_meter_t *m, float e_raw, nlms32_t *s) {
@@ -709,7 +858,7 @@ void nlms_freq_meter_process(nlms_freq_meter_t *m, float e_raw, nlms32_t *s) {
     float confidence = 0.0f;
 
     if ((rms > NLMS_FREQ_MIN_RMS) && (m->zero_cross_count > 0U)) {
-      const float freq_hz = (float)m->zero_cross_count * NLMS_FREQ_SAMPLE_RATE /
+      const float freq_hz = (float)m->zero_cross_count * sample_rate_get_adc_hz() /
                             (float)m->sample_count;
 
       if ((freq_hz >= NLMS_FREQ_MIN_HZ) && (freq_hz <= NLMS_FREQ_MAX_HZ)) {
@@ -724,6 +873,7 @@ void nlms_freq_meter_process(nlms_freq_meter_t *m, float e_raw, nlms32_t *s) {
     debug_nlms_zero_cross_count = m->zero_cross_count;
     debug_nlms_e_rms = rms;
     debug_nlms_e_pp = (m->max_e - m->min_e) / 4095.0 * 3.3;
+    debug_nlms_freq_updated = 1;
 
     m->sample_count = 0;
     m->zero_cross_count = 0;
@@ -766,7 +916,7 @@ void ref_square_freq_meter_process(nlms_freq_meter_t *m, float x_raw) {
     float confidence = 0.0f;
 
     if ((rms > NLMS_FREQ_MIN_RMS) && (m->zero_cross_count > 0U)) {
-      const float freq_hz = (float)m->zero_cross_count * NLMS_FREQ_SAMPLE_RATE /
+      const float freq_hz = (float)m->zero_cross_count * sample_rate_get_adc_hz() /
                             (float)m->sample_count;
 
       if ((freq_hz >= NLMS_FREQ_MIN_HZ) && (freq_hz <= NLMS_FREQ_MAX_HZ)) {
