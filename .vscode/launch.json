@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32F407 CMSIS-DAP",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/2026_4_xiaosai.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "preLaunchTask": "make -j7",
+            "servertype": "openocd",
+            "runToEntryPoint": "main",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        }
+    ]
+}

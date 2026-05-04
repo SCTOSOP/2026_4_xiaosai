@@ -1,0 +1,13 @@
+build/
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.o
+*.d
+*.lst
+*.elf
+*.hex
+*.bin
+*.map
+.DS_Store
