@@ -314,6 +314,7 @@ void nlms32_process_block_u16(nlms32_t *s,
                               const uint16_t *restrict adc_interleaved,
                               uint16_t *restrict out, uint32_t pair_count);
 void nlms32_reset(nlms32_t *s);
+void nlms32_reset_with_zero_weights(nlms32_t *s);
 
 void biquad_hp_init(biquad_hp_t *f);
 float biquad_hp_process(biquad_hp_t *f, float x0);
@@ -516,8 +517,10 @@ void nlms32_init(nlms32_t *s) {
   ref_square_detector_init(&s->ref_square_detector);
 }
 
-void nlms32_reset(nlms32_t *s) {
-  if (NLMS_CUSTOM_INIT_ON == 1) {
+static void nlms32_reset_impl(nlms32_t *s, uint8_t zero_weights) {
+  if (zero_weights == 1U) {
+    memset(s->w, 0, sizeof(s->w));
+  } else if (NLMS_CUSTOM_INIT_ON == 1) {
     memcpy(s->w, (NLMS_INITIAL_W_SET == 2) ? nlms_initial_w_2 : nlms_initial_w,
            sizeof(s->w));
   } else {
@@ -537,6 +540,10 @@ void nlms32_reset(nlms32_t *s) {
   dynamic_notch_init(&s->ref_notch);
   ref_square_detector_init(&s->ref_square_detector);
 }
+
+void nlms32_reset(nlms32_t *s) { nlms32_reset_impl(s, 0U); }
+
+void nlms32_reset_with_zero_weights(nlms32_t *s) { nlms32_reset_impl(s, 1U); }
 
 void ref_square_detector_init(ref_square_detector_t *d) {
   memset(d, 0, sizeof(*d));
@@ -708,7 +715,11 @@ void sample_rate_apply_mode(sample_rate_mode_t mode, nlms32_t *s) {
   sample_rate_high_detect_count = 0;
 
   ClearDACOutputValues();
-  nlms32_reset(s);
+  if (mode == SAMPLE_RATE_MODE_LOW) {
+    nlms32_reset_with_zero_weights(s);
+  } else {
+    nlms32_reset(s);
+  }
   biquad_hp_init(&hp_filter);
 
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dacOutputValues,
