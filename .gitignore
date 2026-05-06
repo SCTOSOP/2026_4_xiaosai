@@ -10,4 +10,7 @@ __pycache__/
 *.hex
 *.bin
 *.map
+*.log
+tmp*
+.vscode/tmp
 .DS_Store

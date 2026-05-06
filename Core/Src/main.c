@@ -52,8 +52,8 @@
 #define DAC_INTERP_FACTOR 4
 #define DAC_BUFFER_SIZE (ADC_PAIR_COUNT * DAC_INTERP_FACTOR * 2)
 
-#define NLMS_TAPS 96     //^ 滤波器 抽头数
-#define NLMS_MU (0.001f) //^ 滤波器 步长
+#define NLMS_TAPS 96      //^ 滤波器 抽头数
+#define NLMS_MU (0.0003f) //^ 滤波器 步长
 #define NLMS_GAIN 1.98f
 #define NLMS_EPS (1e-6f) //^ 滤波器 最小
 
@@ -62,40 +62,41 @@
 #define NLMS_INITIAL_W_SET 2 // 1: 使用 nlms_initial_w；2: 使用 nlms_initial_w_2
 #define NLMS_FREEZE_W_ON 0   // 1: 固定 NLMS 权重，不执行自适应更新
 #define DIRECT_MIX_MINUS_NOISE_ON 0 // 1: 跳过 NLMS，直接输出 混合波-噪声
-#define NLMS_DESPIKE_ON 1           // 1: 启用插值前单点尖峰修复
+#define NLMS_DESPIKE_ON 0           // 1: 启用插值前单点尖峰修复
 #define NLMS_DESPIKE_TH 80.0f       // 尖峰阈值，单位为中心化 ADC 码值
 
-#define ADC_SAMPLE_RATE_HIGH_HZ 50000.0f
-#define DAC_SAMPLE_RATE_HIGH_HZ 200000.0f
-#define ADC_SAMPLE_RATE_LOW_HZ 20000.0f
-#define DAC_SAMPLE_RATE_LOW_HZ 80000.0f
-#define TIM_SAMPLE_RATE_PSC (20U - 1U)
-#define TIM2_DAC_HIGH_ARR (21U - 1U)
-#define TIM3_ADC_HIGH_ARR (84U - 1U)
-#define TIM2_DAC_LOW_ARR (52U - 1U)
-#define TIM3_ADC_LOW_ARR (210U - 1U)
-
-#define ADC_DAC_DYNAMIC_FREQ_ON 1
-#define ADC_DAC_FREQ_SWITCH_ENTER_HZ 500.0f
-#define ADC_DAC_FREQ_SWITCH_EXIT_HZ 650.0f
-#define ADC_DAC_FREQ_SWITCH_MIN_CONFIDENCE 0.50f
-#define ADC_DAC_FREQ_SWITCH_STABLE_COUNT 3U
-
-#define NLMS_FREQ_WINDOW_SIZE 4096     // 频率计统计窗口长度
-#define NLMS_FREQ_HYST_TH 50.0f        // 上升沿零交叉迟滞阈值
+#define NLMS_FREQ_SAMPLE_RATE 50000.0f // NLMS e 的采样率，单位 Hz
+#define NLMS_FREQ_WINDOW_SIZE 2048     // 频率计统计窗口长度
+#define NLMS_FREQ_HYST_TH 50.0f        // 参考方波测频上升沿零交叉迟滞阈值
 #define NLMS_FREQ_MIN_RMS 80.0f        // RMS 低于该值时不更新频率
-#define NLMS_FREQ_MIN_HZ 100.0f        // 有效频率下限
-#define NLMS_FREQ_MAX_HZ 5000.0f       // 有效频率上限
+#define NLMS_FREQ_MIN_HZ 95.0f         // 有效频率下限
+#define NLMS_FREQ_MAX_HZ 5010.0f       // 有效频率上限
+#define NLMS_FREQ_LP_B0 0.0697341272102174f
+#define NLMS_FREQ_LP_B1 0.139468254420435f
+#define NLMS_FREQ_LP_B2 0.0697341272102174f
+#define NLMS_FREQ_LP_A1 -1.12675955771016f
+#define NLMS_FREQ_LP_A2 0.405696066551028f
+#define NLMS_FREQ_AVG_SHIFT_HIGH 4U
+#define NLMS_FREQ_AVG_SHIFT_LOW 9U
+#define NLMS_FREQ_PREDICT_SIZE 1024U
+#define NLMS_FREQ_PREDICT_STABLE_COUNT 2U
+#define NLMS_FREQ_FALLBACK_STABLE_COUNT 14U
+#define NLMS_FREQ_PREDICT_TH_HZ 800.0f
+#define NLMS_FREQ_ASYNC_CHUNK_SIZE 64U
+#define DEBUG_NLMS_FREQ_HISTORY_SIZE 256U // 记录每次测得的 NLMS 频率
 
-#define NLMS_REF_NOTCH_ON 1                 // 1: 对 NLMS 参考输入启用动态陷波
-#define NLMS_REF_NOTCH_MIN_FREQ 100.0f      // notch 有效频率下限
-#define NLMS_REF_NOTCH_MAX_FREQ 5000.0f     // notch 有效频率上限
-#define NLMS_REF_NOTCH_R 0.990f             // notch 极点半径，越接近 1 越窄
-#define NLMS_REF_NOTCH_UPDATE_ALPHA 0.01f   // 锁定频率平滑更新系数
-#define NLMS_REF_NOTCH_FREQ_CHANGE_TH 20.0f // 频率变化超过该值才更新
-#define NLMS_REF_NOTCH_MIN_CONFIDENCE 0.5f  // 频率计置信度下限
-#define NLMS_FREQ_JUMP_RESET_ON 0           // 1: 频率突变时重置 NLMS/notch 状态
-#define NLMS_FREQ_JUMP_RESET_TH 60.0f       // 频率突变重置阈值，单位 Hz
+#define NLMS_REF_NOTCH_ON 1                  // 1: 对 NLMS 参考输入启用动态陷波
+#define NLMS_REF_NOTCH_SAMPLE_RATE 50000.0f  // 参考输入陷波器采样率，单位 Hz
+#define NLMS_REF_NOTCH_MIN_FREQ 100.0f       // notch 有效频率下限
+#define NLMS_REF_NOTCH_MAX_FREQ 5000.0f      // notch 有效频率上限
+#define NLMS_REF_NOTCH_R 0.990f              // notch 极点半径，越接近 1 越窄
+#define NLMS_REF_NOTCH_UPDATE_ALPHA 0.02f    // 锁定频率平滑更新系数
+#define NLMS_REF_NOTCH_FREQ_CHANGE_TH 20.0f  // 频率变化超过该值才更新
+#define NLMS_REF_NOTCH_MIN_CONFIDENCE 0.5f   // 频率计置信度下限
+#define NLMS_REF_NOTCH_BYPASS_LOW_FREQ_ON 1  // 1: 低频时旁路参考输入陷波
+#define NLMS_REF_NOTCH_BYPASS_FREQ_HZ 250.0f // 低于该频率不进行陷波
+#define NLMS_FREQ_JUMP_RESET_ON 0     // 1: 频率突变时重置 NLMS/notch 状态
+#define NLMS_FREQ_JUMP_RESET_TH 60.0f // 频率突变重置阈值，单位 Hz
 
 #define REF_SQUARE_DETECT_WINDOW_SIZE 256  // 参考噪声方波检测窗口长度
 #define REF_SQUARE_DETECT_MIN_PP 160.0f    // 峰峰值低于该值时判定为非方波
@@ -131,6 +132,48 @@ typedef struct {
   float confidence;
 } nlms_freq_meter_t;
 
+typedef enum {
+  NLMS_FREQ_ASYNC_IDLE = 0,
+  NLMS_FREQ_ASYNC_FORWARD,
+  NLMS_FREQ_ASYNC_REVERSE_1,
+  NLMS_FREQ_ASYNC_BACKWARD,
+  NLMS_FREQ_ASYNC_REVERSE_2,
+  NLMS_FREQ_ASYNC_BINARY_HIGH,
+  NLMS_FREQ_ASYNC_ESTIMATE_PREDICT,
+  NLMS_FREQ_ASYNC_BINARY_FINAL,
+  NLMS_FREQ_ASYNC_ESTIMATE_FINAL,
+} nlms_freq_async_phase_t;
+
+typedef struct {
+  nlms_freq_async_phase_t phase;
+  const float *input;
+  uint32_t sample_count;
+  uint32_t index;
+
+  float x1;
+  float x2;
+  float y1;
+  float y2;
+
+  float avg1;
+  float avg2;
+  float avg3;
+  float avg_divisor;
+
+  uint8_t current_state_high;
+  uint8_t candidate_state_high;
+  uint32_t candidate_count;
+  uint32_t stable_sample_count;
+  uint32_t rising_count;
+  uint32_t first_edge;
+  uint32_t last_edge;
+
+  float rms;
+  float min_e;
+  float max_e;
+  float predict_freq_hz;
+} nlms_freq_async_t;
+
 typedef struct {
   float b0;
   float b1;
@@ -146,11 +189,6 @@ typedef struct {
   float locked_freq_hz;
   uint8_t freq_valid;
 } dynamic_notch_t;
-
-typedef enum {
-  SAMPLE_RATE_MODE_HIGH = 0,
-  SAMPLE_RATE_MODE_LOW = 1,
-} sample_rate_mode_t;
 
 typedef struct {
   float prev_x;
@@ -220,20 +258,23 @@ volatile uint32_t tim5_delta_full = 0;
 
 volatile float adc_fs_half = 0.0f;
 volatile float adc_fs_full = 0.0f;
-volatile float current_adc_sample_rate_hz = ADC_SAMPLE_RATE_HIGH_HZ;
-volatile float current_dac_sample_rate_hz = DAC_SAMPLE_RATE_HIGH_HZ;
-volatile uint8_t debug_sample_rate_mode = SAMPLE_RATE_MODE_HIGH;
-volatile uint32_t debug_sample_rate_switch_count = 0;
 
 volatile uint32_t nlms_time_us_half = 0;
 volatile uint32_t nlms_time_us_full = 0;
 
 volatile float debug_nlms_freq_hz = 0.0f;
 volatile float debug_nlms_freq_confidence = 0.0f;
+volatile uint8_t debug_nlms_freq_updated = 0;
 volatile uint32_t debug_nlms_zero_cross_count = 0;
 volatile float debug_nlms_e_rms = 0.0f;
 volatile float debug_nlms_e_pp = 0.0f;
-volatile uint8_t debug_nlms_freq_updated = 0;
+volatile uint32_t debug_nlms_freq_async_drop_count = 0;
+volatile uint32_t debug_nlms_freq_async_complete_count = 0;
+volatile uint8_t debug_nlms_freq_async_phase = 0;
+volatile float debug_nlms_freq_history[DEBUG_NLMS_FREQ_HISTORY_SIZE];
+volatile uint32_t debug_nlms_freq_history_index = 0;
+volatile uint32_t debug_nlms_freq_history_count = 0;
+volatile uint8_t debug_nlms_freq_history_full = 0;
 
 volatile float debug_ref_notch_locked_freq_hz = 0.0f;
 volatile uint8_t debug_ref_notch_valid = 0;
@@ -254,8 +295,12 @@ volatile uint32_t nlms_reset_led_until_tick = 0;
 
 biquad_hp_t hp_filter;
 
-static uint32_t sample_rate_low_detect_count = 0;
-static uint32_t sample_rate_high_detect_count = 0;
+static float nlms_freq_window_buffers[2][NLMS_FREQ_WINDOW_SIZE];
+static uint8_t nlms_freq_capture_buffer_index = 0;
+static float nlms_freq_forward_buffer[NLMS_FREQ_WINDOW_SIZE];
+static float nlms_freq_reverse_buffer[NLMS_FREQ_WINDOW_SIZE];
+static uint8_t nlms_freq_binary_buffer[NLMS_FREQ_WINDOW_SIZE];
+static nlms_freq_async_t nlms_freq_async;
 
 static const float nlms_initial_w[NLMS_TAPS] = {
     0.55393779f,  0.05828273f,  0.00947517f,  0.02123324f,  0.02595950f,
@@ -314,12 +359,15 @@ void nlms32_process_block_u16(nlms32_t *s,
                               const uint16_t *restrict adc_interleaved,
                               uint16_t *restrict out, uint32_t pair_count);
 void nlms32_reset(nlms32_t *s);
-void nlms32_reset_with_zero_weights(nlms32_t *s);
 
 void biquad_hp_init(biquad_hp_t *f);
 float biquad_hp_process(biquad_hp_t *f, float x0);
 void nlms_freq_meter_init(nlms_freq_meter_t *m);
 void nlms_freq_meter_process(nlms_freq_meter_t *m, float e_raw, nlms32_t *s);
+static void nlms_freq_async_init(void);
+static uint8_t nlms_freq_async_start(const float *input, uint32_t sample_count,
+                                     float rms, float min_e, float max_e);
+static void nlms_freq_async_process_slice(void);
 void ref_square_freq_meter_init(nlms_freq_meter_t *m);
 void ref_square_freq_meter_process(nlms_freq_meter_t *m, float x_raw);
 void dynamic_notch_init(dynamic_notch_t *f);
@@ -329,8 +377,6 @@ void dynamic_notch_update_freq(dynamic_notch_t *f, float measured_freq_hz,
 float dynamic_notch_process(dynamic_notch_t *f, float x);
 void ref_square_detector_init(ref_square_detector_t *d);
 void ref_square_detector_process(ref_square_detector_t *d, float x_raw);
-void sample_rate_manager_update(nlms32_t *s);
-void sample_rate_apply_mode(sample_rate_mode_t mode, nlms32_t *s);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -410,7 +456,8 @@ int main(void) {
     static uint32_t last_print = 0;
     if (HAL_GetTick() - last_print > 500) {
       last_print = HAL_GetTick();
-      volatile uint8_t BREAK_POINT = 0; //^ 断点行
+      volatile uint8_t breakpoint_marker = 0; //^ 断点行
+      (void)breakpoint_marker;
       // 在这一行打断点可以观察：
       // adc_fs_full ADC采样频率
       // tim5_delta_half ADC采样半个缓冲区所需时间
@@ -444,7 +491,9 @@ int main(void) {
       nlms_time_us_full = TIM5->CNT - t_start;
     }
 
-    sample_rate_manager_update(&nlms);
+    if ((DMA_HALF_SIGN == 0) && (DMA_FULL_SIGN == 0)) {
+      nlms_freq_async_process_slice();
+    }
 
     /* USER CODE END WHILE */
 
@@ -517,10 +566,8 @@ void nlms32_init(nlms32_t *s) {
   ref_square_detector_init(&s->ref_square_detector);
 }
 
-static void nlms32_reset_impl(nlms32_t *s, uint8_t zero_weights) {
-  if (zero_weights == 1U) {
-    memset(s->w, 0, sizeof(s->w));
-  } else if (NLMS_CUSTOM_INIT_ON == 1) {
+void nlms32_reset(nlms32_t *s) {
+  if (NLMS_CUSTOM_INIT_ON == 1) {
     memcpy(s->w, (NLMS_INITIAL_W_SET == 2) ? nlms_initial_w_2 : nlms_initial_w,
            sizeof(s->w));
   } else {
@@ -540,10 +587,6 @@ static void nlms32_reset_impl(nlms32_t *s, uint8_t zero_weights) {
   dynamic_notch_init(&s->ref_notch);
   ref_square_detector_init(&s->ref_square_detector);
 }
-
-void nlms32_reset(nlms32_t *s) { nlms32_reset_impl(s, 0U); }
-
-void nlms32_reset_with_zero_weights(nlms32_t *s) { nlms32_reset_impl(s, 1U); }
 
 void ref_square_detector_init(ref_square_detector_t *d) {
   memset(d, 0, sizeof(*d));
@@ -649,134 +692,13 @@ void dynamic_notch_init(dynamic_notch_t *f) {
   debug_ref_notch_last_out = 0.0f;
 }
 
-static float sample_rate_get_adc_hz(void) {
-  return current_adc_sample_rate_hz;
-}
-
-static uint32_t sample_rate_mode_tim2_arr(sample_rate_mode_t mode) {
-  return (mode == SAMPLE_RATE_MODE_LOW) ? TIM2_DAC_LOW_ARR : TIM2_DAC_HIGH_ARR;
-}
-
-static uint32_t sample_rate_mode_tim3_arr(sample_rate_mode_t mode) {
-  return (mode == SAMPLE_RATE_MODE_LOW) ? TIM3_ADC_LOW_ARR : TIM3_ADC_HIGH_ARR;
-}
-
-static float sample_rate_mode_adc_hz(sample_rate_mode_t mode) {
-  return (mode == SAMPLE_RATE_MODE_LOW) ? ADC_SAMPLE_RATE_LOW_HZ
-                                        : ADC_SAMPLE_RATE_HIGH_HZ;
-}
-
-static float sample_rate_mode_dac_hz(sample_rate_mode_t mode) {
-  return (mode == SAMPLE_RATE_MODE_LOW) ? DAC_SAMPLE_RATE_LOW_HZ
-                                        : DAC_SAMPLE_RATE_HIGH_HZ;
-}
-
-void sample_rate_apply_mode(sample_rate_mode_t mode, nlms32_t *s) {
-  if ((uint8_t)mode == debug_sample_rate_mode) {
-    return;
-  }
-
-  HAL_TIM_Base_Stop(&htim2);
-  HAL_TIM_Base_Stop(&htim3);
-  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
-  HAL_ADCEx_MultiModeStop_DMA(&hadc1);
-  HAL_ADC_Stop(&hadc2);
-
-  __HAL_TIM_SET_PRESCALER(&htim2, TIM_SAMPLE_RATE_PSC);
-  __HAL_TIM_SET_AUTORELOAD(&htim2, sample_rate_mode_tim2_arr(mode));
-  __HAL_TIM_SET_COUNTER(&htim2, 0);
-  htim2.Init.Prescaler = TIM_SAMPLE_RATE_PSC;
-  htim2.Init.Period = sample_rate_mode_tim2_arr(mode);
-  HAL_TIM_GenerateEvent(&htim2, TIM_EVENTSOURCE_UPDATE);
-
-  __HAL_TIM_SET_PRESCALER(&htim3, TIM_SAMPLE_RATE_PSC);
-  __HAL_TIM_SET_AUTORELOAD(&htim3, sample_rate_mode_tim3_arr(mode));
-  __HAL_TIM_SET_COUNTER(&htim3, 0);
-  htim3.Init.Prescaler = TIM_SAMPLE_RATE_PSC;
-  htim3.Init.Period = sample_rate_mode_tim3_arr(mode);
-  HAL_TIM_GenerateEvent(&htim3, TIM_EVENTSOURCE_UPDATE);
-
-  current_adc_sample_rate_hz = sample_rate_mode_adc_hz(mode);
-  current_dac_sample_rate_hz = sample_rate_mode_dac_hz(mode);
-  debug_sample_rate_mode = (uint8_t)mode;
-  debug_sample_rate_switch_count++;
-
-  DMA_HALF_SIGN = 0;
-  DMA_FULL_SIGN = 0;
-  tim5_last_half = TIM5->CNT;
-  tim5_last_full = tim5_last_half;
-  tim5_delta_half = 0;
-  tim5_delta_full = 0;
-  adc_fs_half = 0.0f;
-  adc_fs_full = 0.0f;
-  nlms_time_us_half = 0;
-  nlms_time_us_full = 0;
-  sample_rate_low_detect_count = 0;
-  sample_rate_high_detect_count = 0;
-
-  ClearDACOutputValues();
-  if (mode == SAMPLE_RATE_MODE_LOW) {
-    nlms32_reset_with_zero_weights(s);
-  } else {
-    nlms32_reset(s);
-  }
-  biquad_hp_init(&hp_filter);
-
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dacOutputValues,
-                    DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
-  HAL_ADC_Start(&hadc2);
-  HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adcRAwValues,
-                               ADC_BUFFER_SIZE);
-  HAL_TIM_Base_Start(&htim3);
-  HAL_TIM_Base_Start(&htim2);
-}
-
-void sample_rate_manager_update(nlms32_t *s) {
-#if ADC_DAC_DYNAMIC_FREQ_ON == 1
-  if (debug_nlms_freq_updated == 0U) {
-    return;
-  }
-  debug_nlms_freq_updated = 0;
-
-  if (debug_nlms_freq_confidence < ADC_DAC_FREQ_SWITCH_MIN_CONFIDENCE) {
-    sample_rate_low_detect_count = 0;
-    sample_rate_high_detect_count = 0;
-    return;
-  }
-
-  const float freq_hz = debug_nlms_freq_hz;
-  if (debug_sample_rate_mode == SAMPLE_RATE_MODE_HIGH) {
-    if ((freq_hz >= NLMS_FREQ_MIN_HZ) &&
-        (freq_hz < ADC_DAC_FREQ_SWITCH_ENTER_HZ)) {
-      sample_rate_low_detect_count++;
-      if (sample_rate_low_detect_count >= ADC_DAC_FREQ_SWITCH_STABLE_COUNT) {
-        sample_rate_apply_mode(SAMPLE_RATE_MODE_LOW, s);
-      }
-    } else {
-      sample_rate_low_detect_count = 0;
-    }
-  } else {
-    if (freq_hz > ADC_DAC_FREQ_SWITCH_EXIT_HZ) {
-      sample_rate_high_detect_count++;
-      if (sample_rate_high_detect_count >= ADC_DAC_FREQ_SWITCH_STABLE_COUNT) {
-        sample_rate_apply_mode(SAMPLE_RATE_MODE_HIGH, s);
-      }
-    } else {
-      sample_rate_high_detect_count = 0;
-    }
-  }
-#else
-  (void)s;
-#endif
-}
-
 void dynamic_notch_set_freq(dynamic_notch_t *f, float freq_hz) {
   if ((freq_hz < NLMS_REF_NOTCH_MIN_FREQ) ||
       (freq_hz > NLMS_REF_NOTCH_MAX_FREQ)) {
     return;
   }
 
-  const float w0 = 2.0f * (float)M_PI * freq_hz / sample_rate_get_adc_hz();
+  const float w0 = 2.0f * (float)M_PI * freq_hz / NLMS_REF_NOTCH_SAMPLE_RATE;
   const float c = cosf(w0);
   const float r = NLMS_REF_NOTCH_R;
 
@@ -818,6 +740,10 @@ float dynamic_notch_process(dynamic_notch_t *f, float x) {
   if ((NLMS_REF_NOTCH_ON == 0) || (f->freq_valid == 0)) {
     return x;
   }
+  if ((NLMS_REF_NOTCH_BYPASS_LOW_FREQ_ON == 1) &&
+      (debug_nlms_freq_hz < NLMS_REF_NOTCH_BYPASS_FREQ_HZ)) {
+    return x;
+  }
 
   const float y =
       f->b0 * x + f->b1 * f->x1 + f->b2 * f->x2 - f->a1 * f->y1 - f->a2 * f->y2;
@@ -836,13 +762,309 @@ void nlms_freq_meter_init(nlms_freq_meter_t *m) {
   m->max_e = -1.0e30f;
   debug_nlms_freq_hz = 0.0f;
   debug_nlms_freq_confidence = 0.0f;
+  debug_nlms_freq_updated = 0;
   debug_nlms_zero_cross_count = 0;
   debug_nlms_e_rms = 0.0f;
   debug_nlms_e_pp = 0.0f;
-  debug_nlms_freq_updated = 0;
+  nlms_freq_capture_buffer_index = 0;
+  nlms_freq_async_init();
+}
+
+static void nlms_freq_async_init(void) {
+  memset(&nlms_freq_async, 0, sizeof(nlms_freq_async));
+  nlms_freq_async.phase = NLMS_FREQ_ASYNC_IDLE;
+  debug_nlms_freq_async_phase = (uint8_t)nlms_freq_async.phase;
+}
+
+static void nlms_freq_async_begin_biquad(nlms_freq_async_phase_t phase,
+                                         const float *input) {
+  nlms_freq_async.phase = phase;
+  nlms_freq_async.input = input;
+  nlms_freq_async.index = 0;
+  nlms_freq_async.x1 = input[0];
+  nlms_freq_async.x2 = input[0];
+  nlms_freq_async.y1 = input[0];
+  nlms_freq_async.y2 = input[0];
+  debug_nlms_freq_async_phase = (uint8_t)nlms_freq_async.phase;
+}
+
+static void nlms_freq_async_begin_reverse(nlms_freq_async_phase_t phase) {
+  nlms_freq_async.phase = phase;
+  nlms_freq_async.index = 0;
+  debug_nlms_freq_async_phase = (uint8_t)nlms_freq_async.phase;
+}
+
+static void nlms_freq_async_begin_binary(nlms_freq_async_phase_t phase,
+                                         uint32_t avg_filter_shift) {
+  nlms_freq_async.phase = phase;
+  nlms_freq_async.index = 1;
+  nlms_freq_async.avg1 = nlms_freq_forward_buffer[0];
+  nlms_freq_async.avg2 = nlms_freq_forward_buffer[0];
+  nlms_freq_async.avg3 = nlms_freq_forward_buffer[0];
+  nlms_freq_async.avg_divisor = (float)(1UL << avg_filter_shift);
+  nlms_freq_binary_buffer[0] = 0U;
+  debug_nlms_freq_async_phase = (uint8_t)nlms_freq_async.phase;
+}
+
+static void nlms_freq_async_begin_estimate(nlms_freq_async_phase_t phase,
+                                           uint32_t stable_sample_count) {
+  nlms_freq_async.phase = phase;
+  nlms_freq_async.index = 1;
+  nlms_freq_async.stable_sample_count = stable_sample_count;
+  nlms_freq_async.rising_count = 0;
+  nlms_freq_async.first_edge = 0;
+  nlms_freq_async.last_edge = 0;
+  nlms_freq_async.current_state_high =
+      (nlms_freq_binary_buffer[0] != 0U) ? 1U : 0U;
+  nlms_freq_async.candidate_state_high = nlms_freq_async.current_state_high;
+  nlms_freq_async.candidate_count = 1U;
+  debug_nlms_freq_async_phase = (uint8_t)nlms_freq_async.phase;
+}
+
+static uint8_t nlms_freq_async_start(const float *input, uint32_t sample_count,
+                                     float rms, float min_e, float max_e) {
+  if (nlms_freq_async.phase != NLMS_FREQ_ASYNC_IDLE) {
+    debug_nlms_freq_async_drop_count++;
+    return 0U;
+  }
+
+  nlms_freq_async.sample_count = sample_count;
+  nlms_freq_async.rms = rms;
+  nlms_freq_async.min_e = min_e;
+  nlms_freq_async.max_e = max_e;
+  nlms_freq_async.predict_freq_hz = 0.0f;
+  nlms_freq_async_begin_biquad(NLMS_FREQ_ASYNC_FORWARD, input);
+  return 1U;
+}
+
+static void nlms_freq_async_finish(void) {
+  float freq_hz = 0.0f;
+  float confidence = 0.0f;
+
+  if ((nlms_freq_async.rising_count >= 2U) &&
+      (nlms_freq_async.last_edge > nlms_freq_async.first_edge)) {
+    freq_hz =
+        ((float)(nlms_freq_async.rising_count - 1U) * NLMS_FREQ_SAMPLE_RATE) /
+        (float)(nlms_freq_async.last_edge - nlms_freq_async.first_edge);
+  }
+
+  if ((nlms_freq_async.rms > NLMS_FREQ_MIN_RMS) &&
+      (nlms_freq_async.rising_count >= 2U) && (freq_hz >= NLMS_FREQ_MIN_HZ) &&
+      (freq_hz <= NLMS_FREQ_MAX_HZ)) {
+    debug_nlms_freq_hz = freq_hz;
+    confidence = nlms_freq_async.rms / (nlms_freq_async.rms + 100.0f);
+  }
+
+  debug_nlms_freq_confidence = confidence;
+  debug_nlms_zero_cross_count = nlms_freq_async.rising_count;
+  debug_nlms_e_rms = nlms_freq_async.rms;
+  debug_nlms_e_pp =
+      (nlms_freq_async.max_e - nlms_freq_async.min_e) / 4095.0f * 3.3f;
+  debug_nlms_freq_history[debug_nlms_freq_history_index] = debug_nlms_freq_hz;
+  debug_nlms_freq_history_index++;
+  if (debug_nlms_freq_history_index >= DEBUG_NLMS_FREQ_HISTORY_SIZE) {
+    debug_nlms_freq_history_index = 0;
+    debug_nlms_freq_history_full = 1U;
+  }
+  if (debug_nlms_freq_history_count < DEBUG_NLMS_FREQ_HISTORY_SIZE) {
+    debug_nlms_freq_history_count++;
+  }
+  debug_nlms_freq_async_complete_count++;
+  debug_nlms_freq_updated = 1U;
+  nlms_freq_async.phase = NLMS_FREQ_ASYNC_IDLE;
+  debug_nlms_freq_async_phase = (uint8_t)nlms_freq_async.phase;
+}
+
+static void nlms_freq_async_process_biquad(float *output) {
+  uint32_t end = nlms_freq_async.index + NLMS_FREQ_ASYNC_CHUNK_SIZE;
+  if (end > nlms_freq_async.sample_count) {
+    end = nlms_freq_async.sample_count;
+  }
+
+  for (uint32_t i = nlms_freq_async.index; i < end; i++) {
+    const float x0 = nlms_freq_async.input[i];
+    const float y0 = NLMS_FREQ_LP_B0 * x0 +
+                     NLMS_FREQ_LP_B1 * nlms_freq_async.x1 +
+                     NLMS_FREQ_LP_B2 * nlms_freq_async.x2 -
+                     NLMS_FREQ_LP_A1 * nlms_freq_async.y1 -
+                     NLMS_FREQ_LP_A2 * nlms_freq_async.y2;
+
+    output[i] = y0;
+    nlms_freq_async.x2 = nlms_freq_async.x1;
+    nlms_freq_async.x1 = x0;
+    nlms_freq_async.y2 = nlms_freq_async.y1;
+    nlms_freq_async.y1 = y0;
+  }
+
+  nlms_freq_async.index = end;
+}
+
+static void nlms_freq_async_process_reverse(const float *input, float *output) {
+  uint32_t end = nlms_freq_async.index + NLMS_FREQ_ASYNC_CHUNK_SIZE;
+  if (end > nlms_freq_async.sample_count) {
+    end = nlms_freq_async.sample_count;
+  }
+
+  for (uint32_t i = nlms_freq_async.index; i < end; i++) {
+    output[i] = input[nlms_freq_async.sample_count - 1U - i];
+  }
+
+  nlms_freq_async.index = end;
+}
+
+static void nlms_freq_async_process_binary(void) {
+  uint32_t end = nlms_freq_async.index + NLMS_FREQ_ASYNC_CHUNK_SIZE;
+  if (end > nlms_freq_async.sample_count) {
+    end = nlms_freq_async.sample_count;
+  }
+
+  for (uint32_t i = nlms_freq_async.index; i < end; i++) {
+    nlms_freq_async.avg1 +=
+        (nlms_freq_forward_buffer[i] - nlms_freq_async.avg1) /
+        nlms_freq_async.avg_divisor;
+    nlms_freq_async.avg2 += (nlms_freq_async.avg1 - nlms_freq_async.avg2) /
+                            nlms_freq_async.avg_divisor;
+    nlms_freq_async.avg3 += (nlms_freq_async.avg2 - nlms_freq_async.avg3) /
+                            nlms_freq_async.avg_divisor;
+
+    nlms_freq_binary_buffer[i] =
+        (nlms_freq_forward_buffer[i] > nlms_freq_async.avg3) ? 1U : 0U;
+  }
+
+  nlms_freq_async.index = end;
+}
+
+static void nlms_freq_async_process_estimate(uint32_t sample_count) {
+  uint32_t end = nlms_freq_async.index + NLMS_FREQ_ASYNC_CHUNK_SIZE;
+  if (end > sample_count) {
+    end = sample_count;
+  }
+
+  for (uint32_t i = nlms_freq_async.index; i < end; i++) {
+    const uint8_t is_high = (nlms_freq_binary_buffer[i] != 0U) ? 1U : 0U;
+
+    if (is_high == nlms_freq_async.candidate_state_high) {
+      nlms_freq_async.candidate_count++;
+    } else {
+      nlms_freq_async.candidate_state_high = is_high;
+      nlms_freq_async.candidate_count = 1U;
+    }
+
+    if ((nlms_freq_async.candidate_state_high !=
+         nlms_freq_async.current_state_high) &&
+        (nlms_freq_async.candidate_count >=
+         nlms_freq_async.stable_sample_count)) {
+      if ((nlms_freq_async.current_state_high == 0U) &&
+          (nlms_freq_async.candidate_state_high != 0U)) {
+        const uint32_t edge_index =
+            i - nlms_freq_async.stable_sample_count + 1U;
+
+        nlms_freq_async.rising_count++;
+        if (nlms_freq_async.rising_count == 1U) {
+          nlms_freq_async.first_edge = edge_index;
+        }
+        nlms_freq_async.last_edge = edge_index;
+      }
+
+      nlms_freq_async.current_state_high = nlms_freq_async.candidate_state_high;
+    }
+  }
+
+  nlms_freq_async.index = end;
+}
+
+static void nlms_freq_async_process_slice(void) {
+  switch (nlms_freq_async.phase) {
+  case NLMS_FREQ_ASYNC_IDLE:
+    break;
+
+  case NLMS_FREQ_ASYNC_FORWARD:
+    nlms_freq_async_process_biquad(nlms_freq_forward_buffer);
+    if (nlms_freq_async.index >= nlms_freq_async.sample_count) {
+      nlms_freq_async_begin_reverse(NLMS_FREQ_ASYNC_REVERSE_1);
+    }
+    break;
+
+  case NLMS_FREQ_ASYNC_REVERSE_1:
+    nlms_freq_async_process_reverse(nlms_freq_forward_buffer,
+                                    nlms_freq_reverse_buffer);
+    if (nlms_freq_async.index >= nlms_freq_async.sample_count) {
+      nlms_freq_async_begin_biquad(NLMS_FREQ_ASYNC_BACKWARD,
+                                   nlms_freq_reverse_buffer);
+    }
+    break;
+
+  case NLMS_FREQ_ASYNC_BACKWARD:
+    nlms_freq_async_process_biquad(nlms_freq_reverse_buffer);
+    if (nlms_freq_async.index >= nlms_freq_async.sample_count) {
+      nlms_freq_async_begin_reverse(NLMS_FREQ_ASYNC_REVERSE_2);
+    }
+    break;
+
+  case NLMS_FREQ_ASYNC_REVERSE_2:
+    nlms_freq_async_process_reverse(nlms_freq_reverse_buffer,
+                                    nlms_freq_forward_buffer);
+    if (nlms_freq_async.index >= nlms_freq_async.sample_count) {
+      nlms_freq_async_begin_binary(NLMS_FREQ_ASYNC_BINARY_HIGH,
+                                   NLMS_FREQ_AVG_SHIFT_HIGH);
+    }
+    break;
+
+  case NLMS_FREQ_ASYNC_BINARY_HIGH:
+    nlms_freq_async_process_binary();
+    if (nlms_freq_async.index >= nlms_freq_async.sample_count) {
+      nlms_freq_async_begin_estimate(NLMS_FREQ_ASYNC_ESTIMATE_PREDICT,
+                                     NLMS_FREQ_PREDICT_STABLE_COUNT);
+    }
+    break;
+
+  case NLMS_FREQ_ASYNC_ESTIMATE_PREDICT:
+    nlms_freq_async_process_estimate(NLMS_FREQ_PREDICT_SIZE);
+    if (nlms_freq_async.index >= NLMS_FREQ_PREDICT_SIZE) {
+      if ((nlms_freq_async.rising_count >= 2U) &&
+          (nlms_freq_async.last_edge > nlms_freq_async.first_edge)) {
+        nlms_freq_async.predict_freq_hz =
+            ((float)(nlms_freq_async.rising_count - 1U) *
+             NLMS_FREQ_SAMPLE_RATE) /
+            (float)(nlms_freq_async.last_edge - nlms_freq_async.first_edge);
+      } else {
+        nlms_freq_async.predict_freq_hz = 0.0f;
+      }
+
+      if (nlms_freq_async.predict_freq_hz > NLMS_FREQ_PREDICT_TH_HZ) {
+        nlms_freq_async_begin_estimate(NLMS_FREQ_ASYNC_ESTIMATE_FINAL,
+                                       NLMS_FREQ_PREDICT_STABLE_COUNT);
+      } else {
+        nlms_freq_async_begin_binary(NLMS_FREQ_ASYNC_BINARY_FINAL,
+                                     NLMS_FREQ_AVG_SHIFT_LOW);
+      }
+    }
+    break;
+
+  case NLMS_FREQ_ASYNC_BINARY_FINAL:
+    nlms_freq_async_process_binary();
+    if (nlms_freq_async.index >= nlms_freq_async.sample_count) {
+      nlms_freq_async_begin_estimate(NLMS_FREQ_ASYNC_ESTIMATE_FINAL,
+                                     NLMS_FREQ_FALLBACK_STABLE_COUNT);
+    }
+    break;
+
+  case NLMS_FREQ_ASYNC_ESTIMATE_FINAL:
+    nlms_freq_async_process_estimate(nlms_freq_async.sample_count);
+    if (nlms_freq_async.index >= nlms_freq_async.sample_count) {
+      nlms_freq_async_finish();
+    }
+    break;
+
+  default:
+    nlms_freq_async_init();
+    break;
+  }
 }
 
 void nlms_freq_meter_process(nlms_freq_meter_t *m, float e_raw, nlms32_t *s) {
+  (void)s;
+
   m->sum2 += e_raw * e_raw;
   if (e_raw < m->min_e) {
     m->min_e = e_raw;
@@ -850,41 +1072,22 @@ void nlms_freq_meter_process(nlms_freq_meter_t *m, float e_raw, nlms32_t *s) {
   if (e_raw > m->max_e) {
     m->max_e = e_raw;
   }
+  nlms_freq_window_buffers[nlms_freq_capture_buffer_index][m->sample_count] =
+      e_raw;
   m->sample_count++;
-
-  if (e_raw < -NLMS_FREQ_HYST_TH) {
-    m->armed_positive = 1;
-  }
-
-  if ((m->armed_positive == 1) && (e_raw > NLMS_FREQ_HYST_TH)) {
-    m->zero_cross_count++;
-    m->armed_positive = 0;
-  }
 
   m->prev_e = e_raw;
   m->prev_valid = 1;
 
   if (m->sample_count >= NLMS_FREQ_WINDOW_SIZE) {
     const float rms = sqrtf(m->sum2 / (float)m->sample_count);
-    float confidence = 0.0f;
+    const uint8_t filled_buffer_index = nlms_freq_capture_buffer_index;
 
-    if ((rms > NLMS_FREQ_MIN_RMS) && (m->zero_cross_count > 0U)) {
-      const float freq_hz = (float)m->zero_cross_count * sample_rate_get_adc_hz() /
-                            (float)m->sample_count;
-
-      if ((freq_hz >= NLMS_FREQ_MIN_HZ) && (freq_hz <= NLMS_FREQ_MAX_HZ)) {
-        m->last_freq_hz = freq_hz;
-        confidence = rms / (rms + 100.0f);
-      }
+    if (nlms_freq_async_start(nlms_freq_window_buffers[filled_buffer_index],
+                              NLMS_FREQ_WINDOW_SIZE, rms, m->min_e,
+                              m->max_e) == 1U) {
+      nlms_freq_capture_buffer_index ^= 1U;
     }
-
-    m->confidence = confidence;
-    debug_nlms_freq_hz = m->last_freq_hz;
-    debug_nlms_freq_confidence = m->confidence;
-    debug_nlms_zero_cross_count = m->zero_cross_count;
-    debug_nlms_e_rms = rms;
-    debug_nlms_e_pp = (m->max_e - m->min_e) / 4095.0 * 3.3;
-    debug_nlms_freq_updated = 1;
 
     m->sample_count = 0;
     m->zero_cross_count = 0;
@@ -927,7 +1130,7 @@ void ref_square_freq_meter_process(nlms_freq_meter_t *m, float x_raw) {
     float confidence = 0.0f;
 
     if ((rms > NLMS_FREQ_MIN_RMS) && (m->zero_cross_count > 0U)) {
-      const float freq_hz = (float)m->zero_cross_count * sample_rate_get_adc_hz() /
+      const float freq_hz = (float)m->zero_cross_count * NLMS_FREQ_SAMPLE_RATE /
                             (float)m->sample_count;
 
       if ((freq_hz >= NLMS_FREQ_MIN_HZ) && (freq_hz <= NLMS_FREQ_MAX_HZ)) {
@@ -1028,94 +1231,94 @@ double poly33_5k(double x, double y) {
          p30 * x3 + p21 * x2 * y + p12 * x * y2 + p03 * y3;
 }
 
-void 这啥呀这是(nlms32_t *s) {
-#define 不是方波 0
-#define 方波但不是奇次谐波 1
-#define 方波且三次谐波 2
-#define 方波且五次谐波 3
+void nlms_adjust_square_wave_mode(nlms32_t *s) {
+  enum {
+    NLMS_SQUARE_MODE_NONE = 0,
+    NLMS_SQUARE_MODE_NON_ODD_HARMONIC = 1,
+    NLMS_SQUARE_MODE_THIRD_HARMONIC = 2,
+    NLMS_SQUARE_MODE_FIFTH_HARMONIC = 3,
+  };
 
-  static uint8_t 稳如瘫痪 = 0;
-  static uint8_t 瘫痪类型 = 不是方波;
-  static uint8_t 只能改一次增益啊 = 0;
+  static uint8_t stable_count = 0;
+  static uint8_t square_mode = NLMS_SQUARE_MODE_NONE;
+  static uint8_t gain_adjusted = 0;
 
-  static uint8_t 特殊的瘫痪次数 = 0;
-
-  // static uint32_t
+  static uint8_t harmonic_stable_count = 0;
 
   if (ref_noise_is_square == 1) {
-    if ((square_nlms_freq_ratio > 2.92) && (square_nlms_freq_ratio < 3.08)) {
-      if (瘫痪类型 == 方波且三次谐波) {
-        稳如瘫痪++;
+    if ((square_nlms_freq_ratio > 2.95) && (square_nlms_freq_ratio < 3.03)) {
+      if (square_mode == NLMS_SQUARE_MODE_THIRD_HARMONIC) {
+        stable_count++;
       } else {
-        瘫痪类型 = 方波且三次谐波;
-        稳如瘫痪 = 0;
+        square_mode = NLMS_SQUARE_MODE_THIRD_HARMONIC;
+        stable_count = 0;
       }
     } else if ((square_nlms_freq_ratio > 4.92) &&
                (square_nlms_freq_ratio < 5.08)) {
-      if (瘫痪类型 == 方波且五次谐波) {
-        稳如瘫痪++;
+      if (square_mode == NLMS_SQUARE_MODE_FIFTH_HARMONIC) {
+        stable_count++;
       } else {
-        瘫痪类型 = 方波且五次谐波;
-        稳如瘫痪 = 0;
+        square_mode = NLMS_SQUARE_MODE_FIFTH_HARMONIC;
+        stable_count = 0;
       }
     } else {
-      if (瘫痪类型 == 方波但不是奇次谐波) {
-        稳如瘫痪++;
+      if (square_mode == NLMS_SQUARE_MODE_NON_ODD_HARMONIC) {
+        stable_count++;
       } else {
-        瘫痪类型 = 方波但不是奇次谐波;
-        稳如瘫痪 = 0;
+        square_mode = NLMS_SQUARE_MODE_NON_ODD_HARMONIC;
+        stable_count = 0;
       }
     }
   } else {
-    if (瘫痪类型 == 不是方波) {
-      稳如瘫痪++;
+    if (square_mode == NLMS_SQUARE_MODE_NONE) {
+      stable_count++;
     } else {
-      瘫痪类型 = 不是方波;
-      稳如瘫痪 = 0;
+      square_mode = NLMS_SQUARE_MODE_NONE;
+      stable_count = 0;
     }
   }
 
-  if (稳如瘫痪 <= 50) {
+  if (stable_count <= 50) {
     return;
   }
 
-  switch (瘫痪类型) {
-  case 不是方波:
+  switch (square_mode) {
+  case NLMS_SQUARE_MODE_NONE:
     s->mu = NLMS_MU;
     s->gain = NLMS_GAIN;
     break;
 
-  case 方波但不是奇次谐波:
-    s->mu = NLMS_MU * 10;
+  case NLMS_SQUARE_MODE_NON_ODD_HARMONIC:
+    s->mu = NLMS_MU * 30;
     s->gain = NLMS_GAIN;
     break;
-  case 方波且三次谐波:
+  case NLMS_SQUARE_MODE_THIRD_HARMONIC:
     s->mu = 0.00000001f;
 
-    if ((只能改一次增益啊 == 0) && (特殊的瘫痪次数 == 4)) {
-      只能改一次增益啊 = 1;
+    if ((gain_adjusted == 0) && (harmonic_stable_count == 4)) {
+      gain_adjusted = 1;
       s->gain = poly33_3k(debug_ref_square_amplitude, debug_nlms_e_pp);
       HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
     } else {
-      特殊的瘫痪次数++;
+      harmonic_stable_count++;
     }
     break;
-  case 方波且五次谐波:
+  case NLMS_SQUARE_MODE_FIFTH_HARMONIC:
     s->mu = 0.00000001f;
 
-    if ((只能改一次增益啊 == 0) && (特殊的瘫痪次数 == 4)) {
-      只能改一次增益啊 = 1;
+    if ((gain_adjusted == 0) && (harmonic_stable_count == 4)) {
+      gain_adjusted = 1;
       s->gain = poly33_5k(debug_ref_square_amplitude, debug_nlms_e_pp);
       HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
     } else {
-      特殊的瘫痪次数++;
+      harmonic_stable_count++;
     }
     break;
 
   default:
     break;
   }
-  稳如瘫痪 = 0;
+  stable_count = 0;
 }
 
 /*
@@ -1140,7 +1343,7 @@ void nlms32_process_block_u16(nlms32_t *s,
   uint8_t despike_valid_count = s->despike_valid_count;
 
   // 小巧思
-  这啥呀这是(s);
+  nlms_adjust_square_wave_mode(s);
 
   for (uint32_t n = 0; n < pair_count; n++) {
     const uint32_t base = (uint32_t)(n << 1);
@@ -1208,7 +1411,8 @@ void nlms32_process_block_u16(nlms32_t *s,
     }
 
     nlms_freq_meter_process(&s->freq_meter, e, s);
-    if (s->freq_meter.sample_count == 0U) {
+    if (debug_nlms_freq_updated == 1U) {
+      debug_nlms_freq_updated = 0U;
       const float measured_freq_hz = debug_nlms_freq_hz;
       const float confidence = debug_nlms_freq_confidence;
       uint8_t did_jump_reset = 0;
@@ -1323,7 +1527,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     tim5_last_full = now;
 
     if (tim5_delta_full != 0) {
-      adc_fs_full = 256.0f * 1000000.0f / (float)tim5_delta_full;
+      adc_fs_full = ADC_PAIR_COUNT * 1000000.0f / (float)tim5_delta_full;
     }
 
     // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_3);
